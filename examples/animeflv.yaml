@@ -30,7 +30,41 @@ anime:
       regex:
         - pattern: \(([^)]+)\)
           group: 1
-      # replace: 
+    # - name: genres
+    #   selector: nav.Nvgnrs
+    #   type: array
+    #   item:
+    #     plain: true
+    #     field:
+    #       selector: a
+    #       # attr: href
+    - name: genres
+      selector: nav.Nvgnrs
+      type: array
+      item:
+        plain: false
+        selector: a
+        fields:
+          - name: name
+          - name: url
+            attr: href
+    - name: related
+      selector: ul.ListAnmRel
+      type: array
+      item:
+        plain: false
+        selector: li
+        fields:
+          - name: name
+            selector: a
+          - name: url
+            selector: a
+            attr: href
+          - name: relation
+            regex:
+            - pattern: \(([^)]+)\)
+              group: 1
+      # replace:
       #   "asd" : "qwe"
       # remove:
       #   - "background-image:url("

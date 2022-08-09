@@ -7,8 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
-	"strings"
 
 	cloudflarebp "github.com/DaRealFreak/cloudflare-bp-go"
 	"github.com/gocolly/colly/v2"
@@ -42,37 +40,16 @@ func Scrape(schema *config.PageSchema, urls []string) {
 	for _, field := range schema.Anime.Fields {
 		func(c *colly.Collector, field config.Field) {
 			c.OnHTML(field.Selector, func(e *colly.HTMLElement) {
-				var rawValue string
-				if field.Attr != nil {
-					rawValue = e.Attr(*field.Attr)
-				} else {
-					rawValue = strings.TrimSpace(e.Text)
+				if animes[e.Request.URL.String()] == nil {
+					animes[e.Request.URL.String()] = make(map[string]interface{})
 				}
-				for _, pattern := range field.Regex {
-					re := regexp.MustCompile(pattern.Pattern)
-					match := re.FindStringSubmatch(rawValue)
-					if len(match) > 0 && pattern.Group >= 0 && pattern.Group < len(match) {
-						rawValue = match[pattern.Group]
-					}
-				}
-				for _, remove := range field.Remove {
-					rawValue = strings.ReplaceAll(rawValue, remove, "")
-				}
-				for k, v := range field.Replace {
-					rawValue = strings.ReplaceAll(rawValue, k, v)
-				}
-				value, err := field.Compile(rawValue)
-				if err != nil {
-					value = rawValue
-				}
-				animes[e.Request.URL.String()][field.Name] = value
+				animes[e.Request.URL.String()][field.Name] = field.SafeCompile(e)
 			})
 		}(c, field)
 	}
 
 	c.OnRequest(func(r *colly.Request) {
 		fmt.Println("Visiting", r.URL)
-		animes[r.URL.String()] = make(map[string]interface{})
 	})
 
 	for _, url := range urls {
@@ -106,5 +83,7 @@ func WriteJson(data interface{}, filename string) error {
 		return err
 	}
 	defer outFile.Close()
-	return json.NewEncoder(outFile).Encode(data)
+	e := json.NewEncoder(outFile)
+	e.SetIndent("", "\t")
+	return e.Encode(data)
 }
