@@ -1,0 +1,43 @@
+id: AnimeFlv
+version: "1.0.0"
+cloudflare: true
+
+anime:
+  fields:
+    - name: title
+      selector: h1.Title
+    - name: synopsis
+      selector: div.Description
+    - name: status
+      selector: span.fa-tv
+    - name: type
+      selector: span.Type
+    - name: score
+      selector: span#votes_prmd
+      type: float64
+    - name: votes
+      selector: span#votes_nmbr
+      type: int
+    - name: followers
+      selector: section.WdgtCn.Sm>div>div>span
+      type: int
+    - name: cover
+      selector: div.Image>figure>img
+      attr: src
+    - name: banner
+      selector: div.Bg
+      attr: style
+      regex:
+        - pattern: \(([^)]+)\)
+          group: 1
+      # replace: 
+      #   "asd" : "qwe"
+      # remove:
+      #   - "background-image:url("
+      #   - ")"
+  # episode:
+  #   fields:
+  #     - name: Title
+  #       selector: e1
+  #     - name: Number
+  #       selector: e2
