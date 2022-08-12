@@ -66,6 +66,7 @@ type ListSchema struct {
 	ContainerSelector string `yaml:"container_selector"`
 	ItemSelector      string `yaml:"item_selector"`
 	Prefix            string `yaml:"prefix"`
+	Pagination        Pagination
 	Link              struct {
 		A    LinkField
 		Data []Field

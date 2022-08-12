@@ -42,8 +42,37 @@ func ScrapeList(schema *config.PageSchema, url string) config.ParsedLinks {
 	}
 	results := make(config.ParsedLinks)
 
+	visitedUrls := make(map[string]bool)
+
 	c.OnHTML(schema.List.ContainerSelector, func(e *colly.HTMLElement) {
 		results.Extend(config.ParseLinkData(schema.List.SafeCompile(e)))
+	})
+
+	pagPrevCount := 0
+	pagNextCount := 0
+
+	c.OnHTML(schema.List.Pagination.Next.Selector, func(e *colly.HTMLElement) {
+		// fmt.Println(schema.List.Pagination.Next.GetValue(e))
+		visitedUrls[e.Request.URL.String()] = true
+		pageUrl := schema.List.Pagination.Next.GetValue(e)
+		if _, ok := visitedUrls[pageUrl]; !ok {
+			pagNextCount++
+			if schema.List.Pagination.Next.Limit == -1 || pagNextCount <= schema.List.Pagination.Next.Limit {
+				e.Request.Visit(pageUrl)
+			}
+		}
+	})
+
+	c.OnHTML(schema.List.Pagination.Previous.Selector, func(e *colly.HTMLElement) {
+		// fmt.Println(schema.List.Pagination.Previous.GetValue(e))
+		visitedUrls[e.Request.URL.String()] = true
+		pageUrl := schema.List.Pagination.Previous.GetValue(e)
+		if _, ok := visitedUrls[pageUrl]; !ok {
+			pagPrevCount++
+			if schema.List.Pagination.Previous.Limit == -1 || pagPrevCount <= schema.List.Pagination.Previous.Limit {
+				e.Request.Visit(pageUrl)
+			}
+		}
 	})
 
 	c.OnRequest(func(r *colly.Request) {
