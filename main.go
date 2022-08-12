@@ -61,6 +61,12 @@ func main() {
 						Usage:   "output file",
 						Aliases: []string{"o"},
 					},
+					&cli.BoolFlag{
+						Name:    "details",
+						Value:   false,
+						Usage:   "scrape detail with the urls in the page",
+						Aliases: []string{"d"},
+					},
 				},
 			},
 		},
@@ -92,6 +98,7 @@ func ScrapeDetails(cCtx *cli.Context) error {
 func ScrapeList(cCtx *cli.Context) error {
 	schema_file := cCtx.String("schema")
 	out_file := cCtx.String("outfile")
+	scrape_details := cCtx.Bool("details")
 	if cCtx.Args().Len() == 0 {
 		return fmt.Errorf("no url specified")
 	}
@@ -100,8 +107,21 @@ func ScrapeList(cCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	var data interface{}
 	list := scrape.ScrapeList(schema, cCtx.Args().Get(0))
-	WriteJson(list, out_file, false)
+	if !scrape_details {
+		data = list
+	} else {
+		_urls := make([]string, len(list))
+		i := 0
+		for k := range list {
+			_urls[i] = k
+			i++
+		}
+		details := scrape.ScrapeDetails(schema, _urls)
+		data = details
+	}
+	WriteJson(data, out_file, false)
 	return nil
 }
 
