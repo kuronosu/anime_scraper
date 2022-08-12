@@ -80,3 +80,4 @@ detail:
 list:
   container_selector: ul.ListAnimes
   item_selector: li>article>a
+  prefix: https://www3.animeflv.net

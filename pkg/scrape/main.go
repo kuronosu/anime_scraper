@@ -40,7 +40,7 @@ func ScrapeList(schema *config.PageSchema, url string) config.ParsedLinks {
 	if schema.Cloudflare {
 		c.WithTransport(GetCloudFlareRoundTripper())
 	}
-	var results config.ParsedLinks
+	results := make(config.ParsedLinks)
 
 	c.OnHTML(schema.List.ContainerSelector, func(e *colly.HTMLElement) {
 		results.Extend(config.ParseLinkData(schema.List.SafeCompile(e)))
