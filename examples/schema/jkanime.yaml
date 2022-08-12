@@ -1,0 +1,13 @@
+id: JKanime
+version: "1.0.0"
+
+detail:
+  fields:
+    - name: title
+      selector: div.anime__details__title>h3
+    - name: synopsis
+      selector: div.anime__details__text>p
+    - name: type
+      selector: div.anime__details__widget>div>div>ul>li:first-child
+      remove:
+        - "Tipo: "

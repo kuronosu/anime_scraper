@@ -1,89 +1,134 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
 
-	cloudflarebp "github.com/DaRealFreak/cloudflare-bp-go"
-	"github.com/gocolly/colly/v2"
 	"github.com/kuronosu/anime_scraper/pkg/config"
-	// "gopkg.in/yaml.v2"
-	// browser "github.com/EDDYCJY/fake-useragent"
+	"github.com/kuronosu/anime_scraper/pkg/scrape"
+	"github.com/urfave/cli/v2"
 )
 
-const animeflv = "examples/animeflv.yaml"
-
-var urls = []string{
-	"https://animeflv.net/anime/the-idolmster",
-	"https://animeflv.net/anime/youkoso-jitsuryoku-shijou-shugi-no-kyoushitsu-e-tv-2nd-season",
-}
-
 func main() {
-	schema, err := config.ReadSchema(animeflv)
-	if err != nil {
+	app := &cli.App{
+		Name:  "",
+		Usage: "scrape pages",
+		Commands: []*cli.Command{
+			{
+				Name:    "details",
+				Aliases: []string{"d"},
+				Usage:   "scrape detail pages",
+				Action:  ScrapeDetails,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "schema",
+						Value:   "schema.yaml",
+						Usage:   "schema that defines the page to be scraped",
+						Aliases: []string{"s"},
+					},
+					&cli.StringFlag{
+						Name:    "outfile",
+						Value:   "results.json",
+						Usage:   "output file",
+						Aliases: []string{"o"},
+					},
+					&cli.StringFlag{
+						Name:    "urls",
+						Value:   "detail_urls.txt",
+						Usage:   "urls to scrape",
+						Aliases: []string{"u"},
+					},
+				},
+			},
+			{
+				Name:    "list",
+				Aliases: []string{"l"},
+				Usage:   "scrape list page",
+				Action:  ScrapeList,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "schema",
+						Value:   "schema.yaml",
+						Usage:   "schema that defines the page to be scraped",
+						Aliases: []string{"s"},
+					},
+					&cli.StringFlag{
+						Name:    "outfile",
+						Value:   "results.json",
+						Usage:   "output file",
+						Aliases: []string{"o"},
+					},
+				},
+			},
+		},
+	}
+
+	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
-	Scrape(schema, urls)
 }
 
-func Scrape(schema *config.PageSchema, urls []string) {
-	c := colly.NewCollector()
-	if schema.Cloudflare {
-		c.WithTransport(GetCloudFlareRoundTripper())
-	}
-	animes := make(map[string]map[string]interface{})
+func ScrapeDetails(cCtx *cli.Context) error {
+	schema_file := cCtx.String("schema")
+	out_file := cCtx.String("outfile")
+	urls_file := cCtx.String("urls")
 
-	for _, field := range schema.Anime.Fields {
-		func(c *colly.Collector, field config.Field) {
-			c.OnHTML(field.Selector, func(e *colly.HTMLElement) {
-				if animes[e.Request.URL.String()] == nil {
-					animes[e.Request.URL.String()] = make(map[string]interface{})
-				}
-				animes[e.Request.URL.String()][field.Name] = field.SafeCompile(e)
-			})
-		}(c, field)
-	}
-
-	c.OnRequest(func(r *colly.Request) {
-		fmt.Println("Visiting", r.URL)
-	})
-
-	for _, url := range urls {
-		c.Visit(url)
-	}
-	WriteJson(animes, "animes.json")
-}
-
-func GetCloudFlareRoundTripper() http.RoundTripper {
-	client := &http.Client{}
-	client.Transport = cloudflarebp.AddCloudFlareByPass(client.Transport)
-	return client.Transport
-}
-
-func WriteBody(res *http.Response, filename string) error {
-	outFile, err := os.Create(filename)
+	schema, err := config.ReadSchema(schema_file)
 	if err != nil {
 		return err
 	}
-	defer outFile.Close()
-	_, err = io.Copy(outFile, res.Body)
+	urls, err := ReadUrls(urls_file)
 	if err != nil {
 		return err
 	}
+	details := scrape.ScrapeDetails(schema, urls)
+	WriteJson(details, out_file, false)
 	return nil
 }
 
-func WriteJson(data interface{}, filename string) error {
+func ScrapeList(cCtx *cli.Context) error {
+	schema_file := cCtx.String("schema")
+	out_file := cCtx.String("outfile")
+	if cCtx.Args().Len() == 0 {
+		return fmt.Errorf("no url specified")
+	}
+
+	schema, err := config.ReadSchema(schema_file)
+	if err != nil {
+		return err
+	}
+	list := scrape.ScrapeList(schema, cCtx.Args().Get(0))
+	WriteJson(list, out_file, false)
+	return nil
+}
+
+func WriteJson(data interface{}, filename string, indent bool) error {
 	outFile, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 	defer outFile.Close()
 	e := json.NewEncoder(outFile)
-	e.SetIndent("", "\t")
+	if indent {
+		e.SetIndent("", "\t")
+	}
 	return e.Encode(data)
+}
+
+func ReadUrls(filename string) ([]string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var urls []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		urls = append(urls, scanner.Text())
+	}
+	return urls, nil
 }

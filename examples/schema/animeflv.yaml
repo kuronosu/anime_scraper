@@ -2,7 +2,7 @@ id: AnimeFlv
 version: "1.0.0"
 cloudflare: true
 
-anime:
+detail:
   fields:
     - name: title
       selector: h1.Title
@@ -14,7 +14,7 @@ anime:
       selector: span.Type
     - name: score
       selector: span#votes_prmd
-      type: float64
+      type: float
     - name: votes
       selector: span#votes_nmbr
       type: int
@@ -64,14 +64,19 @@ anime:
             regex:
             - pattern: \(([^)]+)\)
               group: 1
-      # replace:
-      #   "asd" : "qwe"
-      # remove:
-      #   - "background-image:url("
-      #   - ")"
-  # episode:
-  #   fields:
-  #     - name: Title
-  #       selector: e1
-  #     - name: Number
-  #       selector: e2
+
+# list:
+#   container_selector: ul.ListAnimes
+#   item_selector: li>article
+#   link:
+#     a:
+#       selector: a
+#     data:
+#       - name: name
+#         selector: a>h3
+#       - name: type
+#         selector: a>div>span
+
+list:
+  container_selector: ul.ListAnimes
+  item_selector: li>article>a
