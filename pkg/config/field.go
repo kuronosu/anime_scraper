@@ -9,11 +9,17 @@ import (
 	"github.com/gocolly/colly/v2"
 )
 
+type FieldContains struct {
+	Raw    bool
+	String string
+}
+
 type Field struct {
 	Name     string
 	Selector string
 	Type     *string
 	Attr     *string
+	Contains *FieldContains
 	Replace  map[string]string
 	Remove   []string
 	Regex    []Regex

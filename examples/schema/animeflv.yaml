@@ -30,14 +30,6 @@ detail:
       regex:
         - pattern: \(([^)]+)\)
           group: 1
-    # - name: genres
-    #   selector: nav.Nvgnrs
-    #   type: array
-    #   item:
-    #     plain: true
-    #     field:
-    #       selector: a
-    #       # attr: href
     - name: genres
       selector: nav.Nvgnrs
       type: array
@@ -62,20 +54,16 @@ detail:
             attr: href
           - name: relation
             regex:
-            - pattern: \(([^)]+)\)
-              group: 1
-
-# list:
-#   container_selector: ul.ListAnimes
-#   item_selector: li>article
-#   link:
-#     a:
-#       selector: a
-#     data:
-#       - name: name
-#         selector: a>h3
-#       - name: type
-#         selector: a>div>span
+              - pattern: \(([^)]+)\)
+                group: 1
+    - name: raw_episodes
+      selector: script
+      contains:
+        raw: true
+        string: "var episodes"
+      regex:
+        - pattern: 'var episodes = \[(.*)\];'
+          group: 1
 
 list:
   container_selector: ul.ListAnimes

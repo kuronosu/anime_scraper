@@ -1,7 +1,9 @@
 package scrape
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/gocolly/colly/v2"
 	"github.com/kuronosu/anime_scraper/pkg/config"
@@ -20,7 +22,19 @@ func ScrapeDetails(schema *config.PageSchema, urls []string) map[string]map[stri
 				if details[e.Request.URL.String()] == nil {
 					details[e.Request.URL.String()] = make(map[string]interface{})
 				}
-				details[e.Request.URL.String()][field.Name] = field.SafeCompile(e)
+				tmp := field.SafeCompile(e)
+				if field.IsString() && field.Contains != nil {
+					if field.Contains.Raw {
+						if !strings.Contains(e.Text, field.Contains.String) {
+							return
+						}
+					} else {
+						if !strings.Contains(fmt.Sprint(tmp), field.Contains.String) {
+							return
+						}
+					}
+				}
+				details[e.Request.URL.String()][field.Name] = tmp
 			})
 		}(c, field)
 	}
