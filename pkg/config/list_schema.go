@@ -106,3 +106,11 @@ func ParseLinkData(data []LinkData) ParsedLinks {
 	}
 	return pl
 }
+
+func ExtractLinks(data []LinkData) []string {
+	links := make([]string, 0)
+	for _, d := range data {
+		links = append(links, d.A)
+	}
+	return links
+}

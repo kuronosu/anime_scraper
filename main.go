@@ -48,7 +48,7 @@ func main() {
 					},
 					&cli.StringFlag{
 						Name:    "failed",
-						Usage:   "output file for failed urls without extencion, if it is not empty",
+						Usage:   "output file for failed urls without extension, if it is not empty",
 						Value:   "",
 						Aliases: []string{"f"},
 					},
@@ -80,26 +80,16 @@ func main() {
 					},
 					&cli.StringFlag{
 						Name:    "outfile",
-						Value:   "urls.txt",
-						Usage:   "output file",
+						Value:   "urls",
+						Usage:   "output file, without extension",
 						Aliases: []string{"o"},
 					},
-					// &cli.BoolFlag{
-					// 	Name:    "details",
-					// 	Value:   false,
-					// 	Usage:   "scrape detail with the urls in the page",
-					// 	Aliases: []string{"d"},
-					// },
-					// &cli.StringFlag{
-					// 	Name:    "save-urls",
-					// 	Usage:   "save the urls in the page to a file if is empty it will not save",
-					// 	Aliases: []string{"su"},
-					// },
-					// &cli.BoolFlag{
-					// 	Name:  "async",
-					// 	Value: false,
-					// 	Usage: "scrape details asynchronously",
-					// },
+					&cli.BoolFlag{
+						Name:    "flat",
+						Value:   true,
+						Usage:   "flatten the list",
+						Aliases: []string{"f"},
+					},
 				},
 			},
 		},
@@ -158,9 +148,7 @@ func ScrapeDetails(cCtx *cli.Context) error {
 func ScrapeList(cCtx *cli.Context) error {
 	schema_file := cCtx.String("schema")
 	outfile := cCtx.String("outfile")
-	// scrape_details := cCtx.Bool("details")
-	// save_urls := cCtx.String("save-urls")
-	// async := cCtx.Bool("async")
+	flat := cCtx.Bool("flat")
 	if cCtx.Args().Len() == 0 {
 		return fmt.Errorf("no url specified")
 	}
@@ -169,45 +157,12 @@ func ScrapeList(cCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	list := scrape.ScrapeList(schema, cCtx.Args().Get(0))
-	_list := make([]string, len(list))
-	i := 0
-	for s := range list {
-		_list[i] = s
-		if !schema.List.IncludePrefix {
-			_list[i] = schema.List.Prefix + _list[i]
-		}
-		i++
+	if flat {
+		list := scrape.ScrapeListFlat(schema, cCtx.Args().Get(0))
+		return WritePlain(list, outfile+".txt")
 	}
-	WritePlain(_list, outfile)
-
-	// if !scrape_details {
-	// } else {
-	// 	_urls := make([]string, len(list))
-	// 	i := 0
-	// 	for k := range list {
-	// 		_urls[i] = k
-	// 		if !schema.List.IncludePrefix {
-	// 			_urls[i] = schema.List.Prefix + k
-	// 		}
-	// 		i++
-	// 	}
-	// 	details := scrape.NewMemoryDetailsCollector()
-	// 	errors := scrape.ScrapeDetails(schema, _urls, details, async)
-	// 	fmt.Println("OK", len(details.Items), len(errors))
-	// 	// WritePlain(urlsWithError, "urls_error.txt")
-	// 	if !schema.List.IncludePrefix {
-	// 		detailsWithouPrefix := make(map[string]interface{})
-	// 		for k, v := range details.Items {
-	// 			detailsWithouPrefix[k[len(schema.List.Prefix):]] = v
-	// 		}
-	// 		data = detailsWithouPrefix
-	// 	} else {
-	// 		data = details.Items
-	// 	}
-	// }
-	// WritePlain(_list, save_urls)
-	return nil
+	list := scrape.ScrapeList(schema, cCtx.Args().Get(0))
+	return WriteJson(list, outfile+".json", false)
 }
 
 func WriteJson(data interface{}, filename string, indent bool) error {
