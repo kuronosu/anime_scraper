@@ -69,12 +69,9 @@ list:
   container_selector: ul.ListAnimes
   item_selector: li>article>a
   prefix: https://www3.animeflv.net
+  remove_prefix: true
   pagination:
     next:
-      limit: 1
+      limit: -1
       selector: ul.pagination>li:last-child>a
-      prefix: https://www3.animeflv.net
-    previous:
-      limit: 0
-      selector: ul.pagination>li:first-child>a
       prefix: https://www3.animeflv.net

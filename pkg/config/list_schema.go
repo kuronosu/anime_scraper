@@ -66,6 +66,7 @@ type ListSchema struct {
 	ContainerSelector string `yaml:"container_selector"`
 	ItemSelector      string `yaml:"item_selector"`
 	Prefix            string `yaml:"prefix"`
+	IncludePrefix     bool   `yaml:"include_prefix"`
 	Pagination        Pagination
 	Link              struct {
 		A    LinkField
@@ -77,8 +78,10 @@ func (ls *ListSchema) SafeCompile(e *colly.HTMLElement) []LinkData {
 	_items := make([]LinkData, 0)
 	e.ForEach(ls.ItemSelector, func(_ int, ite *colly.HTMLElement) {
 		link := LinkData{}
-
-		link.A = ls.Prefix + ls.Link.A.SafeCompile(ite)
+		link.A = ls.Link.A.SafeCompile(ite)
+		if ls.IncludePrefix {
+			link.A = ls.Prefix + link.A
+		}
 
 		link.Data = make(map[string]interface{})
 		for _, f := range ls.Link.Data {
