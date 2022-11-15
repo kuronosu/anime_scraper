@@ -46,6 +46,24 @@ func main() {
 						Value: false,
 						Usage: "scrape pages asynchronously",
 					},
+					&cli.StringFlag{
+						Name:    "failed",
+						Usage:   "output file for failed urls without extencion, if it is not empty",
+						Value:   "",
+						Aliases: []string{"f"},
+					},
+					&cli.IntFlag{
+						Name:    "batch-size",
+						Usage:   "batch size for scraping, affects only when async is true",
+						Value:   500,
+						Aliases: []string{"b"},
+					},
+					&cli.BoolFlag{
+						Name:    "verbose",
+						Usage:   "verbose output",
+						Value:   true,
+						Aliases: []string{"v"},
+					},
 				},
 			},
 			{
@@ -62,26 +80,26 @@ func main() {
 					},
 					&cli.StringFlag{
 						Name:    "outfile",
-						Value:   "results.json",
+						Value:   "urls.txt",
 						Usage:   "output file",
 						Aliases: []string{"o"},
 					},
-					&cli.BoolFlag{
-						Name:    "details",
-						Value:   false,
-						Usage:   "scrape detail with the urls in the page",
-						Aliases: []string{"d"},
-					},
-					&cli.StringFlag{
-						Name:    "save-urls",
-						Usage:   "save the urls in the page to a file if is empty it will not save",
-						Aliases: []string{"su"},
-					},
-					&cli.BoolFlag{
-						Name:  "async",
-						Value: false,
-						Usage: "scrape details asynchronously",
-					},
+					// &cli.BoolFlag{
+					// 	Name:    "details",
+					// 	Value:   false,
+					// 	Usage:   "scrape detail with the urls in the page",
+					// 	Aliases: []string{"d"},
+					// },
+					// &cli.StringFlag{
+					// 	Name:    "save-urls",
+					// 	Usage:   "save the urls in the page to a file if is empty it will not save",
+					// 	Aliases: []string{"su"},
+					// },
+					// &cli.BoolFlag{
+					// 	Name:  "async",
+					// 	Value: false,
+					// 	Usage: "scrape details asynchronously",
+					// },
 				},
 			},
 		},
@@ -92,11 +110,21 @@ func main() {
 	}
 }
 
+func getErrorUrlsWithoutNotFound(errors map[string]string) []string {
+	var urls []string
+	for url, err := range errors {
+		if err != "Not Found" {
+			urls = append(urls, url)
+		}
+	}
+	return urls
+}
+
 func ScrapeDetails(cCtx *cli.Context) error {
 	schema_file := cCtx.String("schema")
-	out_file := cCtx.String("outfile")
 	urls_file := cCtx.String("urls")
-	async := cCtx.Bool("async")
+	outfile := cCtx.String("outfile")
+	failed := cCtx.String("failed")
 
 	schema, err := config.ReadSchema(schema_file)
 	if err != nil {
@@ -107,19 +135,32 @@ func ScrapeDetails(cCtx *cli.Context) error {
 		return err
 	}
 	details := scrape.NewMemoryDetailsCollector()
-	errors := scrape.ScrapeDetails(schema, urls, details, async)
-	fmt.Println("[OK]", len(details.Items), "[Errors]", len(errors), "[Total]", len(errors)+len(details.Items))
-	WriteJson(errors, "urls_error.json", false)
-	WriteJson(details.Items, out_file, false)
+	options := scrape.ScrapeDetailsOptions{
+		Async:            cCtx.Bool("async"),
+		Schema:           schema,
+		URLs:             urls,
+		DetailsCollector: details,
+		BatchSize:        cCtx.Int("batch-size"),
+		Verbose:          cCtx.Bool("verbose"),
+	}
+	errors := scrape.ScrapeDetails(options)
+	okCount := len(details.Items)
+	errCount := len(errors)
+	fmt.Println("[OK]", okCount, "[Errors]", errCount, "[Total]", okCount+errCount)
+	WriteJson(details.Items, outfile, false)
+	if failed != "" {
+		WriteJson(errors, failed+".json", false)
+		WritePlain(getErrorUrlsWithoutNotFound(errors), failed+".txt")
+	}
 	return nil
 }
 
 func ScrapeList(cCtx *cli.Context) error {
 	schema_file := cCtx.String("schema")
-	out_file := cCtx.String("outfile")
-	scrape_details := cCtx.Bool("details")
-	save_urls := cCtx.String("save-urls")
-	async := cCtx.Bool("async")
+	outfile := cCtx.String("outfile")
+	// scrape_details := cCtx.Bool("details")
+	// save_urls := cCtx.String("save-urls")
+	// async := cCtx.Bool("async")
 	if cCtx.Args().Len() == 0 {
 		return fmt.Errorf("no url specified")
 	}
@@ -128,47 +169,44 @@ func ScrapeList(cCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	var data interface{}
 	list := scrape.ScrapeList(schema, cCtx.Args().Get(0))
-	if save_urls != "" {
-		_list := make([]string, len(list))
-		i := 0
-		for s := range list {
-			_list[i] = s
-			if !schema.List.IncludePrefix {
-				_list[i] = schema.List.Prefix + _list[i]
-			}
-			i++
-		}
-		WritePlain(_list, save_urls)
-	}
-	if !scrape_details {
-		data = list
-	} else {
-		_urls := make([]string, len(list))
-		i := 0
-		for k := range list {
-			_urls[i] = k
-			if !schema.List.IncludePrefix {
-				_urls[i] = schema.List.Prefix + k
-			}
-			i++
-		}
-		details := scrape.NewMemoryDetailsCollector()
-		errors := scrape.ScrapeDetails(schema, _urls, details, async)
-		fmt.Println("OK", len(details.Items), len(errors))
-		// WritePlain(urlsWithError, "urls_error.txt")
+	_list := make([]string, len(list))
+	i := 0
+	for s := range list {
+		_list[i] = s
 		if !schema.List.IncludePrefix {
-			detailsWithouPrefix := make(map[string]interface{})
-			for k, v := range details.Items {
-				detailsWithouPrefix[k[len(schema.List.Prefix):]] = v
-			}
-			data = detailsWithouPrefix
-		} else {
-			data = details.Items
+			_list[i] = schema.List.Prefix + _list[i]
 		}
+		i++
 	}
-	WriteJson(data, out_file, false)
+	WritePlain(_list, outfile)
+
+	// if !scrape_details {
+	// } else {
+	// 	_urls := make([]string, len(list))
+	// 	i := 0
+	// 	for k := range list {
+	// 		_urls[i] = k
+	// 		if !schema.List.IncludePrefix {
+	// 			_urls[i] = schema.List.Prefix + k
+	// 		}
+	// 		i++
+	// 	}
+	// 	details := scrape.NewMemoryDetailsCollector()
+	// 	errors := scrape.ScrapeDetails(schema, _urls, details, async)
+	// 	fmt.Println("OK", len(details.Items), len(errors))
+	// 	// WritePlain(urlsWithError, "urls_error.txt")
+	// 	if !schema.List.IncludePrefix {
+	// 		detailsWithouPrefix := make(map[string]interface{})
+	// 		for k, v := range details.Items {
+	// 			detailsWithouPrefix[k[len(schema.List.Prefix):]] = v
+	// 		}
+	// 		data = detailsWithouPrefix
+	// 	} else {
+	// 		data = details.Items
+	// 	}
+	// }
+	// WritePlain(_list, save_urls)
 	return nil
 }
 

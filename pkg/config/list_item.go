@@ -39,6 +39,5 @@ func (li *ListItem) SafeCompile(e *colly.HTMLElement) interface{} {
 			_items = append(_items, _map)
 		})
 	}
-
 	return _items
 }

@@ -11,26 +11,47 @@ import (
 	"github.com/kuronosu/anime_scraper/pkg/config"
 )
 
-func ScrapeDetails(
-	schema *config.PageSchema,
-	urls []string,
-	detailsCollector DetailsCollector,
-	async bool,
-) map[string]string {
-	c := colly.NewCollector()
-	if async {
-		c = colly.NewCollector(colly.Async(async))
+type ScrapeDetailsOptions struct {
+	Async            bool
+	BatchSize        int
+	URLs             []string
+	Schema           *config.PageSchema
+	DetailsCollector DetailsCollector
+	Verbose          bool
+}
+
+func batchVisit(c *colly.Collector, urls []string, batchSize int) {
+	requestCounter := 0
+	for _, url := range urls {
+		c.Visit(url)
+		requestCounter++
+		if requestCounter >= batchSize {
+			requestCounter = 0
+			c.Wait()
+		}
 	}
-	if schema.Cloudflare {
+	c.Wait()
+}
+
+func continuousVisit(c *colly.Collector, urls []string) {
+	for _, url := range urls {
+		c.Visit(url)
+	}
+	c.Wait()
+}
+
+func ScrapeDetails(options ScrapeDetailsOptions) map[string]string {
+	c := colly.NewCollector(colly.Async(options.Async))
+	if options.Schema.Cloudflare {
 		c.WithTransport(GetCloudFlareRoundTripper())
 	}
 	mutex := &sync.RWMutex{}
 
 	errorUrls := make(map[string]string)
 	responseCounter := 0
-	total := len(urls)
+	total := len(options.URLs)
 
-	for _, field := range schema.Detail.Fields {
+	for _, field := range options.Schema.Detail.Fields {
 		func(c *colly.Collector, field config.Field) {
 			c.OnHTML(field.Selector, func(e *colly.HTMLElement) {
 				tmp := field.SafeCompile(e)
@@ -45,41 +66,43 @@ func ScrapeDetails(
 						}
 					}
 				}
-				detailsCollector.CollectField(e.Request.URL.String(), field.Name, tmp)
+				options.DetailsCollector.CollectField(e.Request.URL.String(), field.Name, tmp)
 			})
 		}(c, field)
 	}
 
-	c.OnRequest(func(r *colly.Request) {
-		// fmt.Println("Visiting", r.URL)
-	})
+	// c.OnRequest(func(r *colly.Request) {
+	// 	fmt.Println("Visiting", r.URL)
+	// })
 
 	c.OnScraped(func(r *colly.Response) {
+		mutex.Lock()
 		responseCounter++
-		fmt.Print("\r[Progress] ", responseCounter, "/", total, " [Errors] ", len(errorUrls))
+		if options.Verbose {
+			fmt.Print("\r[Progress] ", responseCounter, "/", total, " [Errors] ", len(errorUrls))
+		}
+		mutex.Unlock()
 	})
 
 	c.OnError(func(r *colly.Response, err error) {
 		mutex.Lock()
-		errorUrls[r.Request.URL.String()] = err.Error()
-		mutex.Unlock()
 		responseCounter++
-		fmt.Print("\r[Progress] ", responseCounter, "/", total, " [Errors] ", len(errorUrls))
+		errorUrls[r.Request.URL.String()] = err.Error()
+		if options.Verbose {
+			fmt.Print("\r[Progress] ", responseCounter, "/", total, " [Errors] ", len(errorUrls))
+		}
+		mutex.Unlock()
 	})
 
-	// fmt.Print("\r[Progress] ", counter, "/", total)
-	requestCounter := 0
-	for _, url := range urls {
-		c.Visit(url)
-		requestCounter++
-		if requestCounter >= 500 {
-			requestCounter = 0
-			c.Wait()
-		}
+	if options.Async {
+		batchVisit(c, options.URLs, options.BatchSize)
+	} else {
+		continuousVisit(c, options.URLs)
 	}
-	c.Wait()
 	time.Sleep(300 * time.Millisecond)
-	fmt.Println(" Done")
+	if options.Verbose {
+		fmt.Println(" Done")
+	}
 	return errorUrls
 }
 
