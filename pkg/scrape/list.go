@@ -45,6 +45,18 @@ func ScrapeList(schema *config.PageSchema, url string) config.ParsedLinks {
 	return results
 }
 
+func removeDuplicatesUrls(urls []string) []string {
+	keys := make(map[string]interface{})
+	list := []string{}
+	for _, entry := range urls {
+		if _, exist := keys[entry]; !exist {
+			keys[entry] = nil
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
 func ScrapeListFlat(schema *config.PageSchema, url string) []string {
 	c := colly.NewCollector()
 	if schema.Cloudflare {
@@ -66,5 +78,7 @@ func ScrapeListFlat(schema *config.PageSchema, url string) []string {
 	})
 
 	c.Visit(url)
-	return results
+	c.Wait()
+
+	return removeDuplicatesUrls(results)
 }
