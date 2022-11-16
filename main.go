@@ -37,7 +37,7 @@ func main() {
 					},
 					&cli.StringFlag{
 						Name:    "urls",
-						Value:   "detail_urls.txt",
+						Value:   "urls.txt",
 						Usage:   "urls to scrape",
 						Aliases: []string{"u"},
 					},

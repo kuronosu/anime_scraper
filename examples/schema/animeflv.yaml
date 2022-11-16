@@ -69,7 +69,7 @@ list:
   container_selector: ul.ListAnimes
   item_selector: li>article>a
   prefix: https://www3.animeflv.net
-  remove_prefix: true
+  include_prefix: true
   pagination:
     next:
       limit: -1
