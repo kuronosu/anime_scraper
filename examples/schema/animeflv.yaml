@@ -64,6 +64,14 @@ detail:
       regex:
         - pattern: 'var episodes = \[(.*)\];'
           group: 1
+    - name: raw_data
+      selector: script
+      contains:
+        raw: true
+        string: "var anime_info"
+      regex:
+        - pattern: 'var anime_info = \[(.*)\];'
+          group: 1
 
 list:
   container_selector: ul.ListAnimes
