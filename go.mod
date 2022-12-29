@@ -1,4 +1,4 @@
-module github.com/kuronosu/anime_scraper
+module github.com/kuronosu/schema_scraper
 
 go 1.18
 

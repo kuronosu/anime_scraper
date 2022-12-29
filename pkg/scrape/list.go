@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/gocolly/colly/v2"
-	"github.com/kuronosu/anime_scraper/pkg/config"
+	"github.com/kuronosu/schema_scraper/pkg/config"
 )
 
 func addPaginationOnHTML(c *colly.Collector, link *config.PaginationLink, visitedUrls map[string]bool) {

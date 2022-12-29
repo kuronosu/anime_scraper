@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/kuronosu/anime_scraper/pkg/config"
-	"github.com/kuronosu/anime_scraper/pkg/scrape"
+	"github.com/kuronosu/schema_scraper/pkg/config"
+	"github.com/kuronosu/schema_scraper/pkg/scrape"
 	"github.com/urfave/cli/v2"
 )
 

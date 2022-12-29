@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/gocolly/colly/v2"
-	"github.com/kuronosu/anime_scraper/pkg/config"
+	"github.com/kuronosu/schema_scraper/pkg/config"
 )
 
 type ScrapeDetailsOptions struct {
