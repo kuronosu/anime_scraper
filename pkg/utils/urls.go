@@ -11,3 +11,13 @@ func RemoveDuplicatesUrls(urls []string) []string {
 	}
 	return list
 }
+
+func GetErrorUrlsWithoutNotFound(errors map[string]string) []string {
+	var urls []string
+	for url, err := range errors {
+		if err != "Not Found" {
+			urls = append(urls, url)
+		}
+	}
+	return urls
+}

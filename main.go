@@ -1,14 +1,13 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/kuronosu/schema_scraper/pkg/config"
 	"github.com/kuronosu/schema_scraper/pkg/scrape"
+	"github.com/kuronosu/schema_scraper/pkg/utils"
 	"github.com/urfave/cli/v2"
 )
 
@@ -106,16 +105,6 @@ func main() {
 	}
 }
 
-func getErrorUrlsWithoutNotFound(errors map[string]string) []string {
-	var urls []string
-	for url, err := range errors {
-		if err != "Not Found" {
-			urls = append(urls, url)
-		}
-	}
-	return urls
-}
-
 func ScrapeDetails(cCtx *cli.Context) error {
 	scrape.SetVerbose(cCtx.Bool("verbose"))
 
@@ -128,7 +117,7 @@ func ScrapeDetails(cCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	urls, err := ReadUrls(urls_file)
+	urls, err := utils.ReadUrls(urls_file)
 	if err != nil {
 		return err
 	}
@@ -144,10 +133,10 @@ func ScrapeDetails(cCtx *cli.Context) error {
 	okCount := len(details.Items)
 	errCount := len(errors)
 	fmt.Println("[OK]", okCount, "[Errors]", errCount, "[Total]", okCount+errCount)
-	WriteJson(details.Items, outfile, false)
+	utils.WriteJson(details.Items, outfile, false)
 	if failed != "" {
-		WriteJson(errors, failed+".json", false)
-		WritePlain(getErrorUrlsWithoutNotFound(errors), failed+".txt")
+		utils.WriteJson(errors, failed+".json", false)
+		utils.WritePlain(utils.GetErrorUrlsWithoutNotFound(errors), failed+".txt")
 	}
 	return nil
 }
@@ -168,48 +157,8 @@ func ScrapeList(cCtx *cli.Context) error {
 	}
 	if flat {
 		list := scrape.ScrapeListFlat(schema, cCtx.Args().Get(0))
-		return WritePlain(list, outfile+".txt")
+		return utils.WritePlain(list, outfile+".txt")
 	}
 	list := scrape.ScrapeList(schema, cCtx.Args().Get(0))
-	return WriteJson(list, outfile+".json", false)
-}
-
-func WriteJson(data interface{}, filename string, indent bool) error {
-	outFile, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer outFile.Close()
-	e := json.NewEncoder(outFile)
-	if indent {
-		e.SetIndent("", "\t")
-	}
-	return e.Encode(data)
-}
-
-func ReadUrls(filename string) ([]string, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var urls []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		urls = append(urls, scanner.Text())
-	}
-	return urls, nil
-}
-
-func WritePlain(data []string, filename string) error {
-	outFile, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer outFile.Close()
-	for _, str := range data {
-		outFile.WriteString(str + "\n")
-	}
-	return nil
+	return utils.WriteJson(list, outfile+".json", false)
 }
