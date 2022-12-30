@@ -90,6 +90,12 @@ func main() {
 						Usage:   "flatten the list",
 						Aliases: []string{"f"},
 					},
+					&cli.BoolFlag{
+						Name:    "verbose",
+						Usage:   "verbose output",
+						Value:   true,
+						Aliases: []string{"v"},
+					},
 				},
 			},
 		},
@@ -111,6 +117,8 @@ func getErrorUrlsWithoutNotFound(errors map[string]string) []string {
 }
 
 func ScrapeDetails(cCtx *cli.Context) error {
+	scrape.SetVerbose(cCtx.Bool("verbose"))
+
 	schema_file := cCtx.String("schema")
 	urls_file := cCtx.String("urls")
 	outfile := cCtx.String("outfile")
@@ -131,7 +139,6 @@ func ScrapeDetails(cCtx *cli.Context) error {
 		URLs:             urls,
 		DetailsCollector: details,
 		BatchSize:        cCtx.Int("batch-size"),
-		Verbose:          cCtx.Bool("verbose"),
 	}
 	errors := scrape.ScrapeDetails(options)
 	okCount := len(details.Items)
@@ -146,6 +153,8 @@ func ScrapeDetails(cCtx *cli.Context) error {
 }
 
 func ScrapeList(cCtx *cli.Context) error {
+	scrape.SetVerbose(cCtx.Bool("verbose"))
+
 	schema_file := cCtx.String("schema")
 	outfile := cCtx.String("outfile")
 	flat := cCtx.Bool("flat")

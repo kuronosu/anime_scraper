@@ -15,7 +15,6 @@ type ScrapeDetailsOptions struct {
 	URLs             []string
 	Schema           *config.PageSchema
 	DetailsCollector DetailsCollector
-	Verbose          bool
 }
 
 func batchVisit(c *colly.Collector, urls []string, batchSize int) {
@@ -76,7 +75,7 @@ func ScrapeDetails(options ScrapeDetailsOptions) map[string]string {
 	c.OnScraped(func(r *colly.Response) {
 		mutex.Lock()
 		responseCounter++
-		if options.Verbose {
+		if _VERBOSE {
 			fmt.Print("\r[Progress] ", responseCounter, "/", total, " [Errors] ", len(errorUrls))
 		}
 		mutex.Unlock()
@@ -86,7 +85,7 @@ func ScrapeDetails(options ScrapeDetailsOptions) map[string]string {
 		mutex.Lock()
 		responseCounter++
 		errorUrls[r.Request.URL.String()] = err.Error()
-		if options.Verbose {
+		if _VERBOSE {
 			fmt.Print("\r[Progress] ", responseCounter, "/", total, " [Errors] ", len(errorUrls))
 		}
 		mutex.Unlock()
@@ -97,7 +96,7 @@ func ScrapeDetails(options ScrapeDetailsOptions) map[string]string {
 	} else {
 		continuousVisit(c, options.URLs)
 	}
-	if options.Verbose {
+	if _VERBOSE {
 		fmt.Println(" Done")
 	}
 	return errorUrls

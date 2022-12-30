@@ -1,10 +1,11 @@
 package scrape
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/gocolly/colly/v2"
 	"github.com/kuronosu/schema_scraper/pkg/config"
+	"github.com/kuronosu/schema_scraper/pkg/utils"
 )
 
 func addPaginationOnHTML(c *colly.Collector, link *config.PaginationLink, visitedUrls map[string]bool) {
@@ -38,23 +39,13 @@ func ScrapeList(schema *config.PageSchema, url string) config.ParsedLinks {
 	addPaginationOnHTML(c, &schema.List.Pagination.Previous, visitedUrls)
 
 	c.OnRequest(func(r *colly.Request) {
-		log.Println("Visiting", r.URL)
+		if _VERBOSE {
+			fmt.Println("Visiting", r.URL)
+		}
 	})
 
 	c.Visit(url)
 	return results
-}
-
-func removeDuplicatesUrls(urls []string) []string {
-	keys := make(map[string]interface{})
-	list := []string{}
-	for _, entry := range urls {
-		if _, exist := keys[entry]; !exist {
-			keys[entry] = nil
-			list = append(list, entry)
-		}
-	}
-	return list
 }
 
 func ScrapeListFlat(schema *config.PageSchema, url string) []string {
@@ -74,11 +65,13 @@ func ScrapeListFlat(schema *config.PageSchema, url string) []string {
 	addPaginationOnHTML(c, &schema.List.Pagination.Previous, visitedUrls)
 
 	c.OnRequest(func(r *colly.Request) {
-		log.Println("Visiting", r.URL)
+		if _VERBOSE {
+			fmt.Println("Visiting", r.URL)
+		}
 	})
 
 	c.Visit(url)
 	c.Wait()
 
-	return removeDuplicatesUrls(results)
+	return utils.RemoveDuplicatesUrls(results)
 }
