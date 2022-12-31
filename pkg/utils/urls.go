@@ -12,12 +12,20 @@ func RemoveDuplicatesUrls(urls []string) []string {
 	return list
 }
 
-func GetErrorUrlsWithoutNotFound(errors map[string]string) []string {
-	var urls []string
+func GetErrorUrlsWithoutNotFound(errors map[string]string) map[string]string {
+	trueErrors := make(map[string]string)
 	for url, err := range errors {
 		if err != "Not Found" {
-			urls = append(urls, url)
+			trueErrors[url] = err
 		}
 	}
-	return urls
+	return trueErrors
+}
+
+func MapValues[K comparable, V any](m map[K]V) []V {
+	values := make([]V, 0, len(m))
+	for _, v := range m {
+		values = append(values, v)
+	}
+	return values
 }

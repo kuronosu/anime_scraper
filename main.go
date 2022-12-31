@@ -136,7 +136,7 @@ func ScrapeDetails(cCtx *cli.Context) error {
 	utils.WriteJson(details.Items, outfile, false)
 	if failed != "" {
 		utils.WriteJson(errors, failed+".json", false)
-		utils.WritePlain(utils.GetErrorUrlsWithoutNotFound(errors), failed+".txt")
+		utils.WritePlain(utils.MapValues(utils.GetErrorUrlsWithoutNotFound(errors)), failed+".txt")
 	}
 	return nil
 }
